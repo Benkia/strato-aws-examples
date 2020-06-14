@@ -17,7 +17,7 @@ resource "aws_db_subnet_group" "dbsubnet" {
 # Create db instance 1
 resource "aws_db_instance" "dbinst1" {
   identifier = "dbpost1"
-  instance_class = "m1.medium"
+  instance_class = "db.m1.medium"
   allocated_storage = 10
   engine = "mysql"
   name = "db123"
