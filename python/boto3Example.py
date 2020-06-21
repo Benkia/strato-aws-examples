@@ -1,59 +1,109 @@
 import boto3
 import sys
 
-
-def main():
     """
     This script shows and example of Boto3 integration with Stratoscale Symphony.
 
     The scenario is as such:
-         1. Instantiate an instance from an AMI,
-         2. Create a 20 GB volume,
-         3. Attach the volume to the created AMI.
+        1. Instantiate an instance from an AMI,
+        2. Create a 20 GB volume,
+        3. Attach the volume to the created AMI.
     """
 
-    # creating a connection to Symphony AWS Compatible region
-    client = boto3.Session.client(boto3.session.Session(), service_name="ec2", region_name="symphony",
-                                  endpoint_url="https://<cluster ip>/api/v2/ec2/",
-                                  verify=False,
-                                  aws_access_key_id="<key>",
-                                  aws_secret_access_key="<secret>")
+CLUSTER_IP = '10.16.145.174'
+AWS_ACCESS = 'c07d3037e5d04d6090a01a81f2262cef'
+AWS_SECRET = 'a1d4085f23f44ed29ecc70401d1cefd8'
 
-    # finding our Centos image, grabbing its image ID
+
+# creating a connection to Symphony AWS Compatible region
+def create_ec2_client():
+    return boto3.Session.client(
+            boto3.session.Session(),
+            service_name="ec2",
+            region_name="symphony",
+            endpoint_url="https://%s/api/v2/aws/ec2/" % CLUSTER_IP,
+            verify=False,
+            aws_access_key_id=AWS_ACCESS,
+            aws_secret_access_key=AWS_SECRET
+            )
+    
+
+# finding our Centos image, grabbing its image ID
+def import_centos_image(client):
     images = client.describe_images()
-    image_id = next(image['ImageId'] for image in images if 'centos' in image['Name'])
+    image_id = next(image['ImageId'] for image in images['Images'] if 'centos' in image['Tags'][0]['Value'])
+    waiter = client.get_waiter('image_available')
+    waiter.wait(ImageIds=[image_id,])
+    print ("Found desired image with ID:{0}".format(image_id))
+    return image_id
 
-    print "Found desired image with ID: " + image_id
-
-    # running a new instance using our Centos image ID
+# running a new instance using our Centos image ID
+def run_instance(client,image_id):
     ec2_instance = client.run_instances(
         ImageId=image_id,
         MinCount=1,
         MaxCount=1
     )
-
+    instance_id = ec2_instance['Instances'][0]['InstanceId']
     # check if EC2 instance was created successfully
-    if ec2_instance['ResponseMetadata']['HTTPStatusCode'] == 200:
-        print "Successfully created instance! " + ec2_instance['Instances'][0]['InstanceId']
+    waiter = client.get_waiter('instance_running')
+    waiter.wait(InstanceIds=[instance_id,])
+    client.create_tags(
+            Resources=[
+                instance_id,
+                ],
+            Tags=[
+                {
+                    'Key': 'Name',
+                    'Value': 'Centos_instance'
+                },
+            ]
+        )
+    print ("Successfully created instance!{0} ".format(instance_id))
+    return instance_id
 
-    # create an EBS volume, 20G size
+# create an EBS volume, 20G size
+def create_ebs_volume(client):
     ebs_vol = client.create_volume(
         Size=20,
         AvailabilityZone='symphony'
-    )
-
+        )
     volume_id = ebs_vol['VolumeId']
-
     # check that the EBS volume had been created successfully
-    if ebs_vol['ResponseMetadata']['HTTPStatusCode'] == 200:
-        print "Successfully created Volume! " + volume_id
+    waiter = client.get_waiter('volume_available')
+    waiter.wait(VolumeIds=[volume_id,])
+    client.create_tags(
+            Resources=[
+                volume_id,
+                ],
+            Tags=[
+                {
+                    'Key': 'Name',
+                    'Value': 'centos_volume'
+                },
+            ]
+        )
+    print ("Successfully created Volume!{0} ".format(volume_id))
+    return volume_id
 
-    # attaching EBS volume to our EC2 instance
+
+# attaching EBS volume to our EC2 instance
+def attach_ebs(client,instance_id,volume_id):
     attach_resp = client.attach_volume(
         VolumeId=volume_id,
-        InstanceId=ec2_instance['Instances'][0]['InstanceId'],
+        InstanceId=instance_id,
         Device='/dev/sdm'
-    )
+        )
+    print("Attached EBS: {0} to instance {1}:" .format(volume_id,instance_id))
+
+
+def main():
+    client = create_ec2_client()
+    image_id = import_centos_image(client)
+    instance_id = run_instance(client,image_id)
+    volume_id = create_ebs_volume(client)
+    attach_ebs(client,instance_id,volume_id)
+
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())
