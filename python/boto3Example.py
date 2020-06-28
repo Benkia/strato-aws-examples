@@ -1,21 +1,27 @@
 import boto3
 import sys
 
-    """
+"""
     This script shows and example of Boto3 integration with Stratoscale Symphony.
 
     The scenario is as such:
         1. Instantiate an instance from an AMI,
         2. Create a 20 GB volume,
         3. Attach the volume to the created AMI.
-    """
 
-CLUSTER_IP = '10.16.145.174'
-AWS_ACCESS = 'c07d3037e5d04d6090a01a81f2262cef'
-AWS_SECRET = 'a1d4085f23f44ed29ecc70401d1cefd8'
+    This example was tested on versions:
+    - Symphony version 4.2.1
+    - boto3 1.14.12
+"""
 
 
-# creating a connection to Symphony AWS Compatible region
+# Replace following parameters with your IP and credentials
+CLUSTER_IP = '<API endpoint IP>'
+AWS_ACCESS = '<AWS Access Key ID>'
+AWS_SECRET = '<AWS Secret Access Key>'
+
+
+# Creating a connection to Symphony AWS Compatible region
 def create_ec2_client():
     return boto3.Session.client(
             boto3.session.Session(),
@@ -28,7 +34,7 @@ def create_ec2_client():
             )
     
 
-# finding our Centos image, grabbing its image ID
+# Finding our Centos image, grabbing its image ID
 def import_centos_image(client):
     images = client.describe_images()
     image_id = next(image['ImageId'] for image in images['Images'] if 'centos' in image['Tags'][0]['Value'])
@@ -37,7 +43,8 @@ def import_centos_image(client):
     print ("Found desired image with ID:{0}".format(image_id))
     return image_id
 
-# running a new instance using our Centos image ID
+
+# Running a new instance using our Centos image ID
 def run_instance(client,image_id):
     ec2_instance = client.run_instances(
         ImageId=image_id,
@@ -62,7 +69,8 @@ def run_instance(client,image_id):
     print ("Successfully created instance!{0} ".format(instance_id))
     return instance_id
 
-# create an EBS volume, 20G size
+
+# Create an EBS volume, 20G size
 def create_ebs_volume(client):
     ebs_vol = client.create_volume(
         Size=20,
@@ -87,7 +95,7 @@ def create_ebs_volume(client):
     return volume_id
 
 
-# attaching EBS volume to our EC2 instance
+# Attaching EBS volume to our EC2 instance
 def attach_ebs(client,instance_id,volume_id):
     attach_resp = client.attach_volume(
         VolumeId=volume_id,
