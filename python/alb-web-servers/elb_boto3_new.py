@@ -1,17 +1,20 @@
 import boto3
 import sys
 import os
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Replace following parameters with your IP, credentials and parameters
-CLUSTER_IP = '10.16.146.129'
-AWS_ACCESS = 'fe71605a3df94ba291de8f4244b1ff33'
-AWS_SECRET = '8102235ae903478c86c126043f83d1ef'
+CLUSTER_IP = '10.16.145.59'
+AWS_ACCESS = '06b70475710a494c889b55def7b7638e'
+AWS_SECRET = '1b369730344840c18a78836fced5b090'
 VPC_CIDR = '10.11.12.0/24'
 VPC_NAME = 'my_vpc'
 SUBNET_CIDR = '10.11.12.0/24'
 SECURITY_GROUP_NAME = 'SG'
 IMAGE_SOURCE = 'https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img'
 LOAD_BALANCER_NAME = 'LB'
+KEY_PAIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 
@@ -71,7 +74,7 @@ def create_vpc(client_ec2):
     vpc = client_ec2.create_vpc(CidrBlock=VPC_CIDR)
     vpcId = vpc['Vpc']['VpcId']
     waiter = client_ec2.get_waiter(waiter_name='vpc_available')
-    waiter.wait(VpcIds=[vpcId,])
+    waiter.wait(VpcIds=[vpcId, ])
     client_ec2.create_tags(
             Resources=[
                 vpcId,
@@ -98,13 +101,16 @@ def create_gateway(client_ec2):
         print('Create InternetGateway failed')
 
 
-def attach_gateway_to_vpc(client_ec2,vpcId,igwId):
+def attach_gateway_to_vpc(client_ec2, vpcId, igwId):
     attach_gateway = client_ec2.attach_internet_gateway(
         InternetGatewayId=igwId,
         VpcId=vpcId
     )
     if attach_gateway['ResponseMetadata']['HTTPStatusCode'] == 200:
-        print("Attached InternetGateway with ID: {0} to VPC {1} " .format(igwId, vpcId))
+        print("Attached InternetGateway with ID: {0} to VPC {1} " .format(
+            igwId,
+            vpcId
+        ))
         client_ec2.create_tags(
                 Resources=[
                 igwId,
@@ -120,11 +126,11 @@ def attach_gateway_to_vpc(client_ec2,vpcId,igwId):
         print('Create InternetGateway failed')
 
 
-def create_subnet(client_ec2,vpcId):
+def create_subnet(client_ec2, vpcId):
     subnet = client_ec2.create_subnet(CidrBlock=SUBNET_CIDR, VpcId=vpcId)
     subnetId = subnet['Subnet']['SubnetId']
     waiter = client_ec2.get_waiter('subnet_available')
-    waiter.wait(SubnetIds=[subnetId,])
+    waiter.wait(SubnetIds=[subnetId, ])
     client_ec2.create_tags(
             Resources=[
                 subnetId,
@@ -140,13 +146,13 @@ def create_subnet(client_ec2,vpcId):
     return subnetId
 
 
-def create_route_table(client_ec2,vpcId):
+def create_route_table(client_ec2, vpcId):
     route_table = client_ec2.create_route_table(VpcId=vpcId)
     route_table_Id = route_table['RouteTable']['RouteTableId']
     if route_table['ResponseMetadata']['HTTPStatusCode'] == 200:
         client_ec2.create_tags(
                 Resources=[
-                route_table_Id,
+                    route_table_Id,
                 ],
                 Tags=[
                     {
@@ -155,25 +161,31 @@ def create_route_table(client_ec2,vpcId):
                     },
                 ]
             )
-        print('Created Route Table ID: {0} in VPC: {1}'.format(route_table_Id, vpcId))
+        print('Created Route Table ID: {0} in VPC: {1}'.format(
+            route_table_Id,
+            vpcId
+        ))
         return route_table_Id
     else:
         print('Create route-tables failed')
 
 
-def associate_rtb(client_ec2,route_table_Id,subnetId,igwId):
+def associate_rtb(client_ec2, route_table_Id, subnetId, igwId):
     associate_rtb = client_ec2.associate_route_table(
         RouteTableId=route_table_Id,
         SubnetId=subnetId,
         GatewayId=igwId
     )
     if associate_rtb['ResponseMetadata']['HTTPStatusCode'] == 200:
-        print('Associated route table: {0} to subnet: {1}'.format(route_table_Id, subnetId))
+        print('Associated route table: {0} to subnet: {1}'.format(
+            route_table_Id,
+            subnetId
+        ))
     else:
         print('Associated route table failed')
 
 
-def create_route(client_ec2,igwId,route_table_Id,vpcId):
+def create_route(client_ec2, igwId, route_table_Id, vpcId):
     route = client_ec2.create_route(
         DestinationCidrBlock='0.0.0.0/0',
         GatewayId=igwId,
@@ -193,13 +205,13 @@ def create_security_group(client_ec2, vpcId):
     )
     sgId = security_group['GroupId']
     waiter = client_ec2.get_waiter('security_group_exists')
-    waiter.wait(GroupIds=[sgId,])
+    waiter.wait(GroupIds=[sgId, ])
     print('Created security-group with ID: {0}'.format(sgId))
     return sgId
 
 
 # icmp and tcp protocols
-def allow_ingress_rules(client_ec2,sgId):
+def allow_ingress_rules(client_ec2, sgId):
     ingress = client_ec2.authorize_security_group_ingress(
         GroupId=sgId,
         IpPermissions=[
@@ -227,7 +239,7 @@ def allow_ingress_rules(client_ec2,sgId):
         print('Allow security group ingress failed')
 
 
-def allow_egress_rules(client_ec2,sgId):
+def allow_egress_rules(client_ec2, sgId):
     egress = client_ec2.authorize_security_group_egress(
         GroupId=sgId,
         IpPermissions=[
@@ -255,7 +267,7 @@ def allow_egress_rules(client_ec2,sgId):
         print('Allow security group egress failed')
 
 
-def allow_egress_rules(client_ec2,sgId):
+def allow_egress_rules(client_ec2, sgId):
     egress = client_ec2.authorize_security_group_egress(
         GroupId=sgId,
         IpPermissions=[
@@ -286,12 +298,18 @@ def allow_egress_rules(client_ec2,sgId):
 def create_key_pair(client_ec2):
     key_pair = client_ec2.create_key_pair(KeyName='my_key')
     key_name = key_pair['KeyName']
-    key_file = os.path.expanduser('~/.ssh/{0}.pem'.format(key_name))
+    #key_file = os.path.expanduser('~/.ssh/{0}.pem'.format(key_name))
+    key_file = os.path.expanduser('{path}/{key_name}.pem'.format(
+        path=KEY_PAIR_PATH,
+        key_name=key_name
+    ))
     with open(key_file, "w") as key_file_out:
         key_file_out.write(key_pair['KeyMaterial'])
     waiter = client_ec2.get_waiter('key_pair_exists')
-    waiter.wait(KeyNames=[key_name,])
-    print('Created key-pair for the instance with the name: {0}'.format(key_name))
+    waiter.wait(KeyNames=[key_name, ])
+    print('Created key-pair for the instance with the name: {0}'.format(
+        key_name
+    ))
     return key_name
 
 
@@ -301,7 +319,7 @@ def import_image(client_ec2):
     )
     imageId = image['ImageId']
     waiter = client_ec2.get_waiter('image_available')
-    waiter.wait(ImageIds=[imageId,])
+    waiter.wait(ImageIds=[imageId, ])
     print('Imported image with ID:{0} '.format(imageId))
     client_ec2.create_tags(
             Resources=[
@@ -317,9 +335,9 @@ def import_image(client_ec2):
     return imageId
 
 
-def run_instance(client_ec2,imageId,key_name,subnetId,sgId,instance_name):
-    userdata_read=open('./userdata.sh')
-    userdata=userdata_read.read()
+def run_instance(client_ec2, imageId, key_name, subnetId, sgId, instance_name):
+    userdata_read = open('./userdata.sh')
+    userdata = userdata_read.read()
     userdata_read.close()
     instance = client_ec2.run_instances(
         ImageId=imageId,
@@ -332,7 +350,7 @@ def run_instance(client_ec2,imageId,key_name,subnetId,sgId,instance_name):
     )
     instanceId = instance['Instances'][0]['InstanceId']
     waiter = client_ec2.get_waiter('instance_running')
-    waiter.wait(InstanceIds=[instanceId,])
+    waiter.wait(InstanceIds=[instanceId, ])
     client_ec2.create_tags(
             Resources=[
                 instanceId,
@@ -348,7 +366,7 @@ def run_instance(client_ec2,imageId,key_name,subnetId,sgId,instance_name):
     return instanceId
 
 
-def associate_eip(client_ec2,instanceId):
+def associate_eip(client_ec2, instanceId):
     allocate = client_ec2.allocate_address(Domain='vpc')
     associate_address = client_ec2.associate_address(
         AllocationId=allocate['AllocationId'],
@@ -357,12 +375,14 @@ def associate_eip(client_ec2,instanceId):
         )
     if associate_address['ResponseMetadata']['HTTPStatusCode'] == 200:
         allocationId = allocate['AllocationId']
-        print('Associated allocation:{0} to instance: {1}'.format(allocationId,instanceId))
+        print('Associated allocation:{0} to instance: {1}'.format(
+            allocationId, instanceId
+        ))
     else:
         print('Associated EIP failed')
 
 
-def create_lb(client_elb,subnetId,sgId):
+def create_lb(client_elb, subnetId, sgId):
     lb = client_elb.create_load_balancer(
             Name=LOAD_BALANCER_NAME,
             Subnets=[subnetId],
@@ -371,12 +391,12 @@ def create_lb(client_elb,subnetId,sgId):
             )
     lbId = lb['LoadBalancers'][0]['LoadBalancerArn']
     waiter = client_elb.get_waiter('load_balancer_available')
-    waiter.wait(LoadBalancerArns=[lbId,],)
+    waiter.wait(LoadBalancerArns=[lbId, ],)
     print ('Successfully created load balancer {0}'.format(lbId))
     return lbId
 
 
-def create_target_group(client_elb,vpcId):
+def create_target_group(client_elb, vpcId):
     target_group = client_elb.create_target_group(
             Name='MyTargetGroup',
             Protocol='HTTP',
@@ -391,7 +411,7 @@ def create_target_group(client_elb,vpcId):
         print('Create target group failed')
 
 
-def create_listener(client_elb,lbId,tgId):
+def create_listener(client_elb, lbId, tgId):
     listener = client_elb.create_listener(
             LoadBalancerArn=lbId,
             Protocol='HTTP',
@@ -408,53 +428,85 @@ def create_listener(client_elb,lbId,tgId):
     else:
         print ('Create listener failed')
 
-
-def register_targets(client_elb,tgId,instanceId_1,instanceId_2,lbId):
+#def register_targets(client_elb, tgId, instanceId_1, instanceId_2, lbId):
+#def register_targets(client_elb, lbId, tgId, targetsIds):
+def register_targets(client_elb, lbId, tgId, targetId, **kwargs):
+    targets = [
+        {
+            'Id': targetId,
+        }
+    ]
+    if bool(kwargs):
+        for target in kwargs.values():
+            targets.append(
+                {
+                    'Id': target
+                }
+            )
     register_targets = client_elb.register_targets(
             TargetGroupArn=tgId,
-            Targets=[
-                {
-                    'Id': instanceId_1,
-                },
-                {
-                    'Id': instanceId_2,
-                },
-            ]
+            Targets=targets
         )
     waiter = client_elb.get_waiter('load_balancer_available')
-    waiter.wait(LoadBalancerArns=[lbId,],)
+    waiter.wait(LoadBalancerArns=[lbId, ],)
     print ('Successfully registered targets')
 
 
 def main():
-    import ipdb
-    ipdb.set_trace()
     client_ec2 = create_ec2_client()
     client_elb = create_elb_client()
     vpcId = create_vpc(client_ec2)
     igwId = create_gateway(client_ec2)
-    attach_gateway_to_vpc(client_ec2,vpcId,igwId)
-    subnetId = create_subnet(client_ec2,vpcId)
-    route_table_Id = create_route_table(client_ec2,vpcId)
-    associate_rtb(client_ec2,route_table_Id,subnetId,igwId)
-    create_route(client_ec2,igwId,route_table_Id,vpcId)
-    sgId = create_security_group(client_ec2,vpcId)
-    allow_ingress_rules(client_ec2,sgId)
-    allow_egress_rules(client_ec2,sgId)
+    attach_gateway_to_vpc(client_ec2, vpcId, igwId)
+    subnetId = create_subnet(client_ec2, vpcId)
+    route_table_Id = create_route_table(client_ec2, vpcId)
+    associate_rtb(client_ec2, route_table_Id, subnetId, igwId)
+    create_route(client_ec2, igwId, route_table_Id, vpcId)
+    sgId = create_security_group(client_ec2, vpcId)
+    allow_ingress_rules(client_ec2, sgId)
+    allow_egress_rules(client_ec2, sgId)
     key_name = create_key_pair(client_ec2)
     imageId = import_image(client_ec2)
-    print ("Starting to run target instances")
-    instanceId_1 = run_instance(client_ec2,imageId,key_name,subnetId,sgId,'MyInstance1')
-    instanceId_2 = run_instance(client_ec2,imageId,key_name,subnetId,sgId,'MyInstance2')
-    associate_eip(client_ec2,instanceId_1)
-    associate_eip(client_ec2,instanceId_2)
-    lbId = create_lb(client_elb,subnetId,sgId)
-    tgId = create_target_group(client_elb,vpcId)
-    create_listener(client_elb,lbId,tgId)
-    register_targets(client_elb,tgId,instanceId_1,instanceId_2,lbId)
-    instanceId_3 = run_instance(client_ec2,imageId,key_name,subnetId,sgId,'MyInstance3')
-    instanceId_4 = run_instance(client_ec2,imageId,key_name,subnetId,sgId,'MyInstance4')
-    register_targets(client_elb,tgId,instanceId_3,instanceId_4,lbId)
+    print('Starting to run target instances')
+    instanceId_1 = run_instance(
+        client_ec2,
+        imageId,
+        key_name,
+        subnetId,
+        sgId,
+        'MyInstance1'
+    )
+    instanceId_2 = run_instance(
+        client_ec2,
+        imageId,
+        key_name,
+        subnetId,
+        sgId,
+        'MyInstance2'
+    )
+    associate_eip(client_ec2, instanceId_1)
+    associate_eip(client_ec2, instanceId_2)
+    lbId = create_lb(client_elb, subnetId, sgId)
+    tgId = create_target_group(client_elb, vpcId)
+    create_listener(client_elb, lbId, tgId)
+    import ipdb
+    ipdb.set_trace()
+    register_targets(
+        client_elb,
+        lbId,
+        tgId,
+        instanceId_1,
+        instatce2=instanceId_2
+    )
+    instanceId_3 = run_instance(
+        client_ec2,
+        imageId,
+        key_name,
+        subnetId,
+        sgId,
+        'MyInstance3'
+    )
+    register_targets(client_elb, lbId, tgId, instanceId_3)
 
 
 if __name__ == '__main__':
