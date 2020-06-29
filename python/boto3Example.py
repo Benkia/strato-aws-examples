@@ -1,5 +1,8 @@
 import boto3
 import sys
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 """
     This script shows and example of Boto3 integration with Stratoscale Symphony.
@@ -40,12 +43,12 @@ def import_centos_image(client):
     image_id = next(image['ImageId'] for image in images['Images'] if 'centos' in image['Tags'][0]['Value'])
     waiter = client.get_waiter('image_available')
     waiter.wait(ImageIds=[image_id,])
-    print ("Found desired image with ID:{0}".format(image_id))
+    print("Found desired image with ID:{0}".format(image_id))
     return image_id
 
 
 # Running a new instance using our Centos image ID
-def run_instance(client,image_id):
+def run_instance(client, image_id):
     ec2_instance = client.run_instances(
         ImageId=image_id,
         MinCount=1,
@@ -66,7 +69,7 @@ def run_instance(client,image_id):
                 },
             ]
         )
-    print ("Successfully created instance!{0} ".format(instance_id))
+    print("Successfully created instance!{0} ".format(instance_id))
     return instance_id
 
 
@@ -91,12 +94,12 @@ def create_ebs_volume(client):
                 },
             ]
         )
-    print ("Successfully created Volume!{0} ".format(volume_id))
+    print("Successfully created Volume!{0} ".format(volume_id))
     return volume_id
 
 
 # Attaching EBS volume to our EC2 instance
-def attach_ebs(client,instance_id,volume_id):
+def attach_ebs(client, instance_id, volume_id):
     attach_resp = client.attach_volume(
         VolumeId=volume_id,
         InstanceId=instance_id,
@@ -108,9 +111,9 @@ def attach_ebs(client,instance_id,volume_id):
 def main():
     client = create_ec2_client()
     image_id = import_centos_image(client)
-    instance_id = run_instance(client,image_id)
+    instance_id = run_instance(client, image_id)
     volume_id = create_ebs_volume(client)
-    attach_ebs(client,instance_id,volume_id)
+    attach_ebs(client, instance_id, volume_id)
 
 
 if __name__ == '__main__':

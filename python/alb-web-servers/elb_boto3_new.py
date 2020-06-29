@@ -17,8 +17,6 @@ LOAD_BALANCER_NAME = 'LB'
 KEY_PAIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-
-
 """
 This script shows and example of Boto3 ELB v2 integration with Stratoscale Symphony.
 

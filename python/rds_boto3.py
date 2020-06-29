@@ -2,6 +2,9 @@ import sys
 import boto3
 import time
 import random
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 
 # Replace following parameters with your IP, credentials and parameters
@@ -62,7 +65,7 @@ def get_db_param_grp_family(rds_client):
         print("Couldn't describe DB Engine Versions")
 
 
-def create_param_group(rds_client,group_family):
+def create_param_group(rds_client, group_family):
     param_group_name = 'test_param_grp_%s' % run_index
     create_db_params_response = rds_client.create_db_parameter_group(
             DBParameterGroupName=param_group_name,
@@ -76,13 +79,13 @@ def create_param_group(rds_client,group_family):
         print("Couldn't create DB parameters group")
 
 
-def print_db_param_value(rds_client,param_group_name,param_name):
+def print_db_param_value(rds_client, param_group_name, param_name):
     rsp = rds_client.describe_db_parameters(DBParameterGroupName=param_group_name)
     value = next(param['ParameterValue'] for param in rsp['Parameters'] if param['ParameterName'] == param_name)
-    print ("In group {0} value of {1} is {2}".format(param_group_name,param_name,value))
+    print("In group {0} value of {1} is {2}".format(param_group_name,param_name,value))
 
     
-def modify_param_group(rds_client,param_group_name,param_name):
+def modify_param_group(rds_client, param_group_name, param_name):
     modify_db_params_response = rds_client.modify_db_parameter_group(
             DBParameterGroupName=param_group_name,
             Parameters=
@@ -106,7 +109,7 @@ def modify_param_group(rds_client,param_group_name,param_name):
 
 
 # Reset parameter group
-def reset_param_group(rds_client,param_group_name,param_name):
+def reset_param_group(rds_client, param_group_name, param_name):
     reset_db_params_response = rds_client.reset_db_parameter_group(
             DBParameterGroupName=param_group_name,
             ResetAllParameters=True
@@ -120,7 +123,7 @@ def reset_param_group(rds_client,param_group_name,param_name):
 
 
 # Create DB instance
-def create_db_instance(rds_client,param_group_name):
+def create_db_instance(rds_client, param_group_name):
     db_instance_name = 'test_instance_db_%s' % run_index
     create_db_instance_response = rds_client.create_db_instance(
                                         DBInstanceIdentifier=db_instance_name,
@@ -154,7 +157,7 @@ def create_db_instance(rds_client,param_group_name):
 
 
 # Create DB snapshot
-def create_db_snapshot(rds_client,db_instance_name):
+def create_db_snapshot(rds_client, db_instance_name):
     db_snapshot_name = 'test_snapshot_db_%s' % run_index
     create_db_snapshot_response = rds_client.create_db_snapshot(
                                         DBInstanceIdentifier=db_instance_name,
@@ -173,7 +176,7 @@ def create_db_snapshot(rds_client,db_instance_name):
     return db_snapshot_name
     
 # Restore DB snapshot_db
-def restore_db_instance(rds_client,db_snapshot_name):
+def restore_db_instance(rds_client, db_snapshot_name):
     db_restored_name = 'test_restored_snapshot_db_%s' % run_index
     restore_db_response = rds_client.restore_db_instance_from_db_snapshot(
                                                 DBInstanceIdentifier=db_restored_name,
@@ -201,7 +204,7 @@ def restore_db_instance(rds_client,db_snapshot_name):
 
 
 # Delete restored DB
-def delete_restores_db(rds_client,db_restored_name):
+def delete_restores_db(rds_client, db_restored_name):
     del_restore_db_response = rds_client.delete_db_instance(
                                                 DBInstanceIdentifier=db_restored_name,
                                             )
@@ -211,21 +214,17 @@ def delete_restores_db(rds_client,db_restored_name):
     print("Restored DB {0} is deleted".format(db_restored_name))
 
 
-
 def main():
-    import ipdb
-    ipdb.set_trace()
     rds_client = create_rds_client()
     group_family = get_db_param_grp_family(rds_client)
-    param_group_name = create_param_group(rds_client,group_family)
+    param_group_name = create_param_group(rds_client, group_family)
     param_name = 'binlog_cache_size'
-    print_db_param_value(rds_client,param_group_name,param_name)
-    modified_param_value = modify_param_group(rds_client,param_group_name,param_name)
-    reset_param_group(rds_client,param_group_name,param_name)
-    db_instance_name = create_db_instance(rds_client,param_group_name)
-    db_snapshot_name = create_db_snapshot(rds_client,'test1')
-    # db_restored_name = restore_db_instance(rds_client,db_snapshot_name)
-    delete_restores_db(rds_client,'test1')
+    print_db_param_value(rds_client, param_group_name, param_name)
+    modified_param_value = modify_param_group(rds_client, param_group_name, param_name)
+    reset_param_group(rds_client, param_group_name, param_name)
+    db_instance_name = create_db_instance(rds_client, param_group_name)
+    db_restored_name = restore_db_instance(rds_client, db_snapshot_name)
+    delete_restores_db(rds_client, db_restored_name)
 
 
 if __name__ == '__main__':

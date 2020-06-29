@@ -1,3 +1,6 @@
 # Overview - Application Load Balancer (ALB/ELBv2)
-This script shows and example of Boto3 ELB v2 integration with Stratoscale Symphony by creating 2 webservers and load balancer. 
-After register the instances to the target group, use the EIP of the load balancer to verify that the LB works. 
+This script shows and example of Boto3 ELB v2 integration with Stratoscale Symphony.
+After creating 2 webservers and one load-balancer we'll register the instances into the target group.
+There's an example of hoe to register more instances into the target-group later.
+It is possible to register as many instances as you need.
+If you wish to test the LB you can use the EIP of the LB to verify that it works. 
