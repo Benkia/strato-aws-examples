@@ -1,7 +1,7 @@
 provider "aws" {
   access_key = var.access_key
   secret_key = var.secret_key
-
+  version = "= 2.13.0"
   endpoints {
     elb = "https://${var.symphony_ip}/api/v2/aws/elb"
     ec2 = "https://${var.symphony_ip}/api/v2/aws/ec2"

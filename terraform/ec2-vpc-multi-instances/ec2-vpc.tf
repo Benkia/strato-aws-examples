@@ -3,7 +3,7 @@ resource "aws_vpc" "myapp_vpc" {
   cidr_block = "192.168.0.0/16"
   enable_dns_support = false
 
-  tags {
+  tags= {
     Name = "Demo VPC"
   }
 }
@@ -19,7 +19,7 @@ resource "aws_vpc_dhcp_options_association" "dns_resolver" {
 resource "aws_subnet" "myapp_subnet"{
     cidr_block = "192.168.10.0/24"
     vpc_id = "${aws_vpc.myapp_vpc.id}"
-    tags {
+    tags= {
       Name = "Demo subnet"
     }
 
@@ -51,7 +51,7 @@ resource "aws_instance" "myapp_instance" {
     subnet_id = "${aws_subnet.myapp_subnet.id}"
     vpc_security_group_ids = ["${aws_security_group.allow_all.id}"]
     count = "${var.instance_number}"
-    tags{
+    tags={
         Name="my_instance_${count.index}"
     }
 }

@@ -12,7 +12,7 @@ provider "aws" {
   skip_requesting_account_id = true
 
   # Pinning AWS plugin version
-  version = "=1.31.0"
+  version = "=2.31.0"
 
   # No importance for this value currently
   region = "us-east-1"
