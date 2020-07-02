@@ -5,9 +5,9 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Replace following parameters with your IP, credentials and parameters
-CLUSTER_IP = '10.16.145.59'
-AWS_ACCESS = '06b70475710a494c889b55def7b7638e'
-AWS_SECRET = '1b369730344840c18a78836fced5b090'
+CLUSTER_IP = '10.16.145.126'
+AWS_ACCESS = '1cceed78ee5b471c9f2d9de5461c4e57'
+AWS_SECRET = '3bb86e0dbae14584bfcbe522ab52e102'
 VPC_CIDR = '10.11.12.0/24'
 VPC_NAME = 'my_vpc'
 SUBNET_CIDR = '10.11.12.0/24'
@@ -451,6 +451,8 @@ def register_targets(client_elb, lbId, tgId, targetId, **kwargs):
 
 
 def main():
+    import ipdb
+    ipdb.set_trace()
     client_ec2 = create_ec2_client()
     client_elb = create_elb_client()
     vpcId = create_vpc(client_ec2)

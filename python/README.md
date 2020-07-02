@@ -1,13 +1,13 @@
 # Symphony AWS Python SDK Integration Examples
 
 ## Welcome!
-This repository aims to give examples to some of the common AWS Python SDK use cases Stratoscale supports:
+This repository aims to give examples to some of the common AWS Python SDK use cases Neokarm supports:
 - EC2
 - S3
 - RDS
 - ELB v2
 
-The examples will help you get started with AWS Python SDK against Stratoscale Symphony.
+The examples will help you get started with AWS Python SDK against Neokarm Symphony.
 
 ## General Information
 Currently supported service apis include:
