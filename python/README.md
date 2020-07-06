@@ -14,6 +14,7 @@ Currently supported service apis include:
 1. EC2 APIs at `https://<region ip>/api/v2/ec2/`
 2. RDS APIs at `https://<region ip>/api/v2/aws/rds`
 3. ELB APIs at `https://<region ip>/api/v2/aws/elb`
+4. Cloud watch APIs at `https://<region ip>/api/v2/aws/cloudwatch`
 
 ## Submittion Rules:
 1. Submit working examples only
